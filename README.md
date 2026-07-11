@@ -1,4 +1,4 @@
-# Decky LSFG-VK â€” Odin 2 Armada Fork
+# Decky LSFG-VK — Odin 2 Armada Fork
 
 This is an unofficial Odin 2 Armada fork/package by **Janley**, based on
 [Decky LSFG-VK](https://github.com/xXJSONDeruloXx/decky-lsfg-vk) v0.12.5.
@@ -72,7 +72,7 @@ The layer was confirmed to:
 3. Open the Decky **Developer** section.
 4. Select **Install Plugin from ZIP** and choose this ZIP.
 5. Open **Decky LSFG-VK** and select **Install** or **Reinstall LSFG-VK**.
-6. Configure a profile. Start with 2Ã— and Performance Mode enabled.
+6. Configure a profile. Start with 2× and Performance Mode enabled.
 7. Add this to the Steam launch options for each game:
 
    ```bash
