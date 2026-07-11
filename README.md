@@ -22,10 +22,13 @@ during Vulkan instance initialization on the tested Odin 2, however.
 This fork therefore:
 
 - starts from Decky LSFG-VK v0.12.5;
-- keeps its `aarch64` detection and portable home-directory handling;
+- detects the native `aarch64` host even when Armada runs Decky through FEX,
+  while retaining portable home-directory handling;
 - replaces `bin/liblsfg-vk-arm64.so` with the Odin-tested ARM64 build;
 - bundles that build directly instead of allowing Decky to fetch and replace
   it with the incompatible upstream ARM test binary;
+- avoids metadata-preserving file copies that fail inside Armada's FEX-hosted
+  Decky sandbox, allowing the bundled layer to install with safe permissions;
 - preserves the upstream Decky interface, configuration profiles, installer,
   uninstaller, and `~/lsfg` launch wrapper.
 
