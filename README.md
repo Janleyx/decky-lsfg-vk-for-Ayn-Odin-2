@@ -1,92 +1,136 @@
-# Decky LSFG-VK
+# Decky LSFG-VK â€” Odin 2 Armada Fork
 
-> **Note:**  
-> This is an **unofficial community plugin**. It is independently developed and **not officially supported** by the creators of Lossless Scaling or lsfg-vk. For support, please use the [decky-lsfg-vk Discord Channel](https://discord.gg/TwvHdVucC3).
+This is an unofficial Odin 2 Armada fork/package by **Janley**, based on
+[Decky LSFG-VK](https://github.com/xXJSONDeruloXx/decky-lsfg-vk) v0.12.5.
+It packages a native ARM64 `lsfg-vk` Vulkan layer that was verified on an
+AYN Odin 2 Pro running Armada.
 
+It is intended for native Linux games and games launched through Steam/Proton
+on Armada. It is not an Android, Winlator, or GameNative package.
 
-<p align="center">
-   <img src="assets/decky-lossless-logo.png" alt="decky-lsfg-vk Logo" width="200"/>
-</p>
-<p align="center">
-   <a href="https://ko-fi.com/B0B71HZTAX" target="_blank" rel="noopener noreferrer">
-      <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support on Ko-fi"/>
-   </a>
-</p>
+## Why this fork exists
 
+The Decky Store version available during testing was v0.12.2. On Armada it
+copied the x86-64 LSFG library before the installation stopped, leaving the
+Vulkan manifest, configuration, and `~/lsfg` launcher missing.
 
-## What is this?
+Upstream Decky LSFG-VK v0.12.5 added native `aarch64` detection and uses the
+actual home directory instead of assuming `/home/deck`, fixing the installer
+path problem on Armada. Its original bundled ARM test binary still crashed
+during Vulkan instance initialization on the tested Odin 2, however.
 
-A Decky plugin that streamlines the installation of **lsfg-vk** ([Lossless Scaling Frame Generation Vulkan layer](https://github.com/PancakeTAS/lsfg-vk)) on Steam Deck, allowing you to use the Lossless Scaling frame generation features on Linux with a controller friendly UI in SteamOS, Bazzite, or any other Linux platform compatible with Decky Loader.
+This fork therefore:
+
+- starts from Decky LSFG-VK v0.12.5;
+- keeps its `aarch64` detection and portable home-directory handling;
+- replaces `bin/liblsfg-vk-arm64.so` with the Odin-tested ARM64 build;
+- bundles that build directly instead of allowing Decky to fetch and replace
+  it with the incompatible upstream ARM test binary;
+- preserves the upstream Decky interface, configuration profiles, installer,
+  uninstaller, and `~/lsfg` launch wrapper.
+
+Patched ARM library SHA-256:
+
+```text
+d8247d5590dee7389b9636eea71d1ead054ce1fcf4b8c240cd8745a09241bddd
+```
+
+## Tested environment
+
+- AYN Odin 2 Pro
+- Armada / Fedora 44
+- Linux kernel 7.0.11
+- Snapdragon 8 Gen 2 / Adreno 740
+- Turnip Mesa driver 26.1.2
+- Vulkan loader 1.4.341
+- Decky LSFG-VK base version 0.12.5
+
+The layer was confirmed to:
+
+- load as native `aarch64`;
+- resolve all Linux runtime dependencies;
+- discover the Vulkan implicit-layer manifest;
+- find a legitimate Steam installation of `Lossless.dll`;
+- extract the Lossless Scaling shaders successfully;
+- initialize the Vulkan instance and device layers;
+- create and recreate an LSFG swapchain context;
+- remain active during a 20-second Gamescope/Turnip `vkcube` presentation
+  test.
+
+## Requirements
+
+- An AYN Odin 2 family device running Armada Linux.
+- Decky Loader.
+- A legitimate Steam copy of Lossless Scaling.
+- Lossless Scaling installed so that `Lossless.dll` is available to the
+  plugin. This package does not contain the DLL or its proprietary shaders.
 
 ## Installation
 
-1. **Download the plugin** from the [releases tab](https://github.com/xXJSONDeruloXx/decky-lsfg-vk/releases)
-   - Download the "decky-lsfg-vk.zip" file to your Steam Deck
-2. **Install manually through Decky**:
-   - In Game Mode, go to the settings cog in the top right of the Decky Loader tab
-   - Enable "Developer Mode"
-   - Go to "Developer" tab and select "Install Plugin from Zip"
-   - Select the downloaded "decky-lsfg-vk.zip" file
+1. Download the ZIP without extracting it.
+2. Open Decky settings and enable **Developer Mode**.
+3. Open the Decky **Developer** section.
+4. Select **Install Plugin from ZIP** and choose this ZIP.
+5. Open **Decky LSFG-VK** and select **Install** or **Reinstall LSFG-VK**.
+6. Configure a profile. Start with 2Ã— and Performance Mode enabled.
+7. Add this to the Steam launch options for each game:
 
-## How to Use
+   ```bash
+   ~/lsfg %command%
+   ```
 
-1. **Purchase and install** [Lossless Scaling](https://store.steampowered.com/app/993090/Lossless_Scaling/) from Steam
-2. **Open the plugin** from the Decky menu
-3. **Click "Install lsfg-vk"** to automatically set up the lsfg-vk vulkan layer
-4. **Configure settings** using the plugin's UI - adjust FPS multiplier, flow scale, performance mode, HDR settings, and experimental features
-5. **Apply launch option** to games you want to use frame generation with:
-   - Add `~/lsfg %command%` to your game's launch options in Steam Properties
-   - Or use the "Launch Option Clipboard" button in the plugin to copy the command
-6. **Launch your game** - frame generation will activate automatically using your plugin configuration
+The plugin automatically uses Armada's real home directory, normally
+`/var/home/armada`. Do not replace it with a hard-coded `/home/deck` path.
 
-## Configuration Options
+## Verification
 
-The plugin provides several configuration options to optimize frame generation for your games:
+From Armada's terminal:
 
-### Core Settings
-- **FPS Multiplier**: Choose between 2x, 3x, or 4x frame generation
-- **Flow Scale**: Adjust motion estimation quality (lower = better performance, higher = better quality)
-- **Performance Mode**: Uses a lighter processing model - recommended for most games
-- **HDR Mode**: Enable for games that support HDR output
+```bash
+file ~/.local/lib/liblsfg-vk.so
+vulkaninfo | grep -i lsfg
+```
 
-## Feedback and Support
+The first command should report `ARM aarch64`. The second should show:
 
-For per-game feedback and community support, please join the [decky-lsfg-vk Discord Channel](https://discord.gg/TwvHdVucC3)
+```text
+VK_LAYER_LS_frame_generation
+```
 
-## Troubleshooting
+Games must still be launched with `~/lsfg %command%` for the selected Decky
+profile to apply.
 
-**Frame generation not working?**
-- Ensure you've added `~/lsfg %command%` to your game's launch options
-- Check that the Lossless Scaling DLL was detected correctly in the plugin
-- Try enabling Performance Mode if you're experiencing crashes
-- Make sure your game is running in fullscreen mode for best results
+The two core bundled binaries can also be checked from the extracted plugin
+folder with:
 
-**Performance issues?**
-- Lower the Flow Scale setting for better performance
-- Enable Performance Mode (recommended for most games)
-- Try reducing the FPS multiplier from 4x to 2x or 3x
-- Consider using the experimental FPS limit feature for DirectX games
+```bash
+sha256sum -c SHA256SUMS
+```
 
-## What it does
+## Known issue
 
-The plugin:
-- Automatically downloads and installs the latest lsfg-vk Vulkan layer to `~/.local/lib/`
-- Configures the Vulkan layer in `~/.local/share/vulkan/implicit_layer.d/`
-- Creates a TOML configuration file in `~/.config/lsfg-vk/conf.toml` with your settings
-- Automatically detects your Lossless Scaling DLL installation
-- Provides an easy-to-use interface to configure frame generation settings:
-  - **FPS Multiplier**: Choose 2x, 3x, or 4x frame generation
-  - **Flow Scale**: Adjust motion estimation quality vs performance
-  - **Performance Mode**: Use lighter processing for better performance
-  - **HDR Mode**: Enable for HDR-compatible games
-  - **Experimental Features**: Override present mode and set FPS limits
-- **Hot-reloading**: Configuration changes apply immediately without restarting games
-- Easy uninstallation that removes all installed files when no longer needed
+During testing, a short `vkcube` run could segfault while the test application
+was closing. A longer presentation run remained stable until deliberately
+stopped. If a game works normally but crashes only while exiting, it may be
+the same LSFG teardown issue. Runtime behavior can vary by game and Proton
+version.
 
-## Credits
+This is an early, unofficial community build and has not been validated on
+every Odin 2 model or Armada image.
 
-- **[PancakeTAS](https://github.com/PancakeTAS/lsfg-vk)** for creating the lsfg-vk Vulkan compatibility layer
-- **[Lossless Scaling](https://store.steampowered.com/app/993090/Lossless_Scaling/)** developers for the original frame generation technology
-- **[Deck Wizard](https://www.youtube.com/@DeckWizard)**  - Extensive community support including comprehensive guides, promotional content, thorough testing and feedback, custom artworks, and tutorial videos. His passionate advocacy and continuous support have been instrumental in this plugin's success.
-- The **Decky Loader** team for the plugin framework
-- Community contributors and testers for feedback and bug reports
+## Credits and fork chain
+
+- **Odin 2 Armada adaptation and testing:** Janley
+- **Decky LSFG-VK:** Kurt Himebauch / xXJSONDeruloXx
+- **Original lsfg-vk:** PancakeTAS and contributors
+- **ARM/Android fork used for the native ARM build:** FrankBarretta's
+  `lsfg-vk-android`
+- **Lossless Scaling:** THS; users must supply their own legitimately obtained
+  `Lossless.dll`
+
+The original Decky README is included as `README-UPSTREAM.md`. All original
+copyright notices and licenses are retained in `LICENSE`.
+
+This fork is not affiliated with or officially supported by AYN, Armada,
+Decky Loader, Lossless Scaling, PancakeTAS, FrankBarretta, or the upstream
+Decky LSFG-VK maintainers.
