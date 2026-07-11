@@ -53,7 +53,12 @@ class InstallationService(BaseService):
             if self._is_arm_architecture():
                 self.log.info("Detected ARM architecture, using ARM binary")
                 arm_so_path = plugin_dir / BIN_DIR / ARM_LIB_FILENAME
-                shutil.copy2(arm_so_path, self.lib_file)
+                # Decky runs through FEX on Armada. copy2() attempts to copy
+                # temporary-file metadata that FEX may refuse even though the
+                # file contents are readable. Copy contents and set the mode
+                # explicitly instead.
+                shutil.copyfile(arm_so_path, self.lib_file)
+                self.lib_file.chmod(0o644)
                 self.log.info(f"Overwrote with ARM binary: {self.lib_file}")
             
             self._create_config_file()
@@ -78,7 +83,25 @@ class InstallationService(BaseService):
         Returns:
             True if running on ARM (aarch64), False otherwise
         """
-        return platform.machine().lower() == 'aarch64'
+        if platform.machine().lower() in ('aarch64', 'arm64'):
+            return True
+
+        # Armada runs Decky Loader and its plugins through FEX, so Python sees
+        # the emulated x86-64 process architecture. PID 1 is the native host
+        # systemd binary; ELF e_machine 183 identifies an AArch64 host without
+        # depending on commands that FEX may also virtualize.
+        try:
+            with Path('/proc/1/exe').open('rb') as host_executable:
+                elf_header = host_executable.read(20)
+            if elf_header[:4] == b'\x7fELF' and elf_header[5] in (1, 2):
+                byte_order = 'little' if elf_header[5] == 1 else 'big'
+                if int.from_bytes(elf_header[18:20], byte_order) == 183:
+                    self.log.info("Detected native AArch64 host through PID 1 while running under FEX")
+                    return True
+        except OSError as e:
+            self.log.debug(f"Could not inspect native host architecture: {e}")
+
+        return False
     
     def _extract_and_install_files(self, zip_path: Path) -> None:
         """Extract zip file and install files to appropriate locations
@@ -117,7 +140,8 @@ class InstallationService(BaseService):
                             if file_path.suffix == JSON_EXT and file == JSON_FILENAME:
                                 self._copy_and_fix_json_file(src_file, dst_file)
                             else:
-                                shutil.copy2(src_file, dst_file)
+                                shutil.copyfile(src_file, dst_file)
+                                dst_file.chmod(0o644)
                             
                             self.log.info(f"Copied {file} to {dst_file}")
     
@@ -147,7 +171,8 @@ class InstallationService(BaseService):
         except (json.JSONDecodeError, KeyError, OSError) as e:
             self.log.error(f"Error fixing JSON file {src_file}: {e}")
             # Fallback to simple copy if JSON modification fails
-            shutil.copy2(src_file, dst_file)
+            shutil.copyfile(src_file, dst_file)
+            dst_file.chmod(0o644)
     
     def _create_config_file(self) -> None:
         """Create or update the TOML config file in ~/.config/lsfg-vk with default configuration and detected DLL path
