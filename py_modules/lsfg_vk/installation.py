@@ -86,6 +86,15 @@ class InstallationService(BaseService):
         if platform.machine().lower() in ('aarch64', 'arm64'):
             return True
 
+        # Armada's Decky service runs through FEX and therefore reports an
+        # emulated x86-64 process. Its device metadata helper remains visible
+        # inside the FEX rootfs and identifies the native ARM-only image
+        # without requiring privileged access to another process.
+        armada_device_env = Path('/usr/libexec/armada/device-env')
+        if armada_device_env.is_file():
+            self.log.info("Detected native AArch64 Armada host through device-env")
+            return True
+
         # Armada runs Decky Loader and its plugins through FEX, so Python sees
         # the emulated x86-64 process architecture. PID 1 is the native host
         # systemd binary; ELF e_machine 183 identifies an AArch64 host without
